@@ -19,7 +19,7 @@ def main(args):
     else:
         raise ValueError("ID of training run/runs required.")
     runs = sorted(runs, key=lambda x: x.id)
-
+    
     # SLURM multi processing handler if one is used
     if "SLURM_ARRAY_TASK_ID" in os.environ:
         N = len(runs)
@@ -40,12 +40,9 @@ def main(args):
         checkpoints_dir = run.config["save_dir"]
         policy_dims = run.config["policy_dims"]
         run_folder_path = Path(checkpoints_dir) / f"car1d_{run.id}"
-
-        cumulative_rewards = run.history()['cumulative_rewards_mean'].to_numpy()
-        cumulative_rewards = cumulative_rewards[~np.isnan(cumulative_rewards)]
         
         id_name = args.sweep_id if args.sweep_id is not None else args.run_id
-        random_evaluation_dir = Path(args.sweeps_dir) / id_name
+        random_evaluation_dir = Path(args.randomized_data_dir) / id_name
 
         metrics_dict, summary_dict = evaluate_analytic(env_name=env_name, policy_dims=policy_dims, run_folder_path=run_folder_path,
                                                        stochastic_policy=args.add_stochastic,
@@ -64,7 +61,6 @@ def main(args):
             pickle.dump(metrics_dict, open(history_path, "wb"))
             
             # log summary
-            summary_dict["best_mean_cumulative_rewards"] = np.max(cumulative_rewards)
             summary_path = save_path / "summary.pkl"
             pickle.dump(summary_dict, open(summary_path, "wb"))
 
@@ -81,8 +77,6 @@ def main(args):
                 wandb.log(epoch_metrics_dict)
 
             # write summary in wandb
-            summary_dict["max_mean_cumulative_rewards"] = np.max(cumulative_rewards)
-            summary_dict["average_mean_cumulative_rewards"] = np.mean(cumulative_rewards)
             eval_run.summary.update(summary_dict)
             wandb.finish()
 
@@ -93,7 +87,7 @@ if __name__ == "__main__":
     parser.add_argument("--project_name", help="Weights & Biases project name", required=True, type=str)
     parser.add_argument("--sweep_id", help="To evaluate a set of runs in a sweep, input sweep_id", type=str, default=None)
     parser.add_argument("--run_id", help="For single run evaluation, use run_id instead of sweep_id", type=str, default=None)
-    parser.add_argument("--sweeps_dir", type=str, default="sweeps_data")
+    parser.add_argument("--randomized_data_dir", type=str, default="randomized_data")
     parser.add_argument("--add_stochastic", help="Include results from the stochastic policy as well", action="store_true") # default is false; only use deterministic policy
     parser.add_argument("--evaluate_random_trajectories", help="Evaluate over random trajectories", action="store_true") # default is false - must first run randomized_metric_helper.py if want to use this
     parser.add_argument("--evaluate_random_lines", help="Evaluate over random lines", action="store_true") # default is false - must first run randomized_metric_helper.py if want to use this

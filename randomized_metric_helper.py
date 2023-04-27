@@ -84,19 +84,27 @@ def load_random_lines(sweep_dir):
     
 def main(args):
     api = wandb.Api()
-    sweep = api.sweep(f"{args.entity}/{args.project_name}/sweeps/{args.sweep_id}")
-    runs = sweep.runs
+    if args.run_id is not None and args.sweep_id is None: # single run evaluation
+        runs = api.runs(path=f"{args.entity}/{args.project_name}", filters={"config.run_name":args.run_id}) #, "tags":"train"
+        base_path = Path(args.save_dir) / args.run_id
+    elif args.sweep_id is not None and args.run_id is None:
+        sweep = api.sweep(f"{args.entity}/{args.project_name}/sweeps/{args.sweep_id}")
+        runs = sweep.runs
+        base_path = Path(args.save_dir) / args.sweep_id
+    else:
+        raise ValueError("ID of training run/runs required.")
     runs = sorted(runs, key=lambda x: x.id)
     env_name = runs[0].config["env"]
     
     input_lines_dict = sample_random_lines(runs=runs, num_samples=args.num_random_lines)
+    
     for name in ["origin", "mean"]:
-        file_path = Path(args.sweeps_dir) / args.sweep_id / "random_lines" / f"{name}.lines"
+        file_path = base_path / "random_lines" / f"{name}.lines"
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         pickle.dump(input_lines_dict[name], open(file_path, "wb"))
 
     for i in range(args.num_random_trajectories):
-        file_path = Path(args.sweeps_dir) / args.sweep_id / "random_trajectories" / f"random_traj_{i}.traj"
+        file_path = base_path / "random_trajectories" / f"random_traj_{i}.traj"
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         random_traj, _ = sample_random_trajectory(env_name)
         pickle.dump(random_traj, open(file_path, "wb"))
@@ -105,8 +113,9 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--entity", help="Weights & Biases entity", type=str)
     parser.add_argument("--project_name", help="Weights & Biases project name", required=True, type=str)
-    parser.add_argument("--sweep_id", type=str, required=True)
-    parser.add_argument("--sweeps_dir", type=str, default="sweeps_data")
+    parser.add_argument("--sweep_id", type=str, required=None)
+    parser.add_argument("--run_id", type=str, default=None)
+    parser.add_argument("--save_dir", type=str, default="randomized_data")
     parser.add_argument("--num_random_lines", type=int, default=100)
     parser.add_argument("--num_random_trajectories", type=int, default=10)
     args = parser.parse_args()

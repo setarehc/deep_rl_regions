@@ -1,0 +1,12 @@
+gym==0.21.0
+mujoco-py==2.1.2.14
+numpy==1.21.6
+torch==1.13.1
+tqdm==4.65.0
+wandb==0.15.0
+matplotlib==3.5.3
+stable-baselines3==1.0
+colorhash==1.2.1
+pandas==1.2.3
+seaborn==0.11.1
+pygame==2.0.1

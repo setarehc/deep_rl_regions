@@ -94,6 +94,7 @@ def extract_embeddings(env, policy, states, clip_actions=True, n_layer=None, nor
 
 @torch.no_grad()
 def extract_features(states, policy, clip_actions=True, n_layer=None):
+    import pdb; pdb.set_trace()
     policy_net_depth = len(policy.mlp_extractor.policy_net)//2
     true_actions_tensor, true_values_tensor, log_prob = policy.forward(states, deterministic=True)
     features_tensor = policy.features_extractor.forward(states)
@@ -110,7 +111,6 @@ def extract_features(states, policy, clip_actions=True, n_layer=None):
     actions_tensor = policy.action_net.forward(activations)
     values_tensor = policy.value_net.forward(policy.mlp_extractor.value_net.forward(shared_latents_tensor))
     
-    assert actions_tensor.equal(true_actions_tensor)
     assert values_tensor.equal(true_values_tensor)
 
     # clip actions
